@@ -4,12 +4,12 @@ import React, {
   useState,
   ReactNode,
   useCallback,
-  useEffect
+  useEffect,
 } from "react";
 import auth from "@react-native-firebase/auth";
 import fireStore from "@react-native-firebase/firestore";
 import { Alert } from "react-native";
-import AsyncStorage from '@react-native-async-storage/async-storage'
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type User = {
   id: string;
@@ -20,6 +20,7 @@ type User = {
 type AuthContextData = {
   signIn: (email: string, password: string) => Promise<void>;
   isLogging: boolean;
+  signOut: () => Promise<void>
   user: User | null;
 };
 
@@ -27,7 +28,7 @@ type AuthProviderProps = {
   children: ReactNode;
 };
 
-const USER_COLLECTION = '@gopizza:users'
+const USER_COLLECTION = "@gopizza:users";
 
 const AuthContext = createContext({} as AuthContextData);
 
@@ -36,22 +37,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isLogging, setIsLogging] = useState(false);
 
   const loadUserStorageData = useCallback(async () => {
-    setIsLogging(true)
+    setIsLogging(true);
 
-    const storedUser = await AsyncStorage.getItem(USER_COLLECTION)
+    const storedUser = await AsyncStorage.getItem(USER_COLLECTION);
 
-    if(storedUser) {
-      const userData = JSON.parse(storedUser) as User
-      setUser(userData)
+    if (storedUser) {
+      const userData = JSON.parse(storedUser) as User;
+      setUser(userData);
     }
 
-    setIsLogging(false)
-  }, [])
+    setIsLogging(false);
+  }, []);
 
   useEffect(() => {
-    loadUserStorageData()
-  }, [])
-
+    loadUserStorageData();
+  }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
     if (!email || !password) {
@@ -74,7 +74,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 isAdmin,
               };
 
-              await AsyncStorage.setItem(USER_COLLECTION, JSON.stringify(userData))
+              await AsyncStorage.setItem(
+                USER_COLLECTION,
+                JSON.stringify(userData)
+              );
               setUser(userData);
             }
           })
@@ -94,8 +97,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
       .finally(() => setIsLogging(false));
   }, []);
 
+  const signOut = useCallback(async () => {
+    await auth().signOut();
+    await AsyncStorage.removeItem(USER_COLLECTION);
+    setUser(null);
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ isLogging, signIn, user }}>
+    <AuthContext.Provider value={{ isLogging, signIn, user, signOut }}>
       {children}
     </AuthContext.Provider>
   );
